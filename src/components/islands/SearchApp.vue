@@ -3,14 +3,21 @@
  * Search results page island. Owns the query state and composes:
  *   - the search box with the WikiSuggest autocomplete dropdown
  *   - result tabs (全部 / Wiki / Mod)
- *   - the wiki search results list
+ *   - the wiki and mod search result lists
  *   - the WikiPanel knowledge card (right rail on desktop, top on mobile)
  *
- * Mod search is not built yet, so its tab/section shows a "coming soon"
- * placeholder; the layout is already in place for when it lands.
+ * Wiki and Mod search fire concurrently on submit, each with its own loading /
+ * error state but sharing one AbortController so a new query cancels both.
  */
 import { computed, onMounted, ref } from 'vue';
-import { Search, BookOpen, Package, ExternalLink } from 'lucide-vue-next';
+import {
+  Search,
+  BookOpen,
+  Package,
+  ExternalLink,
+  Download,
+  User,
+} from 'lucide-vue-next';
 import WikiSuggest from '../wiki/WikiSuggest.vue';
 import WikiPanel from '../wiki/WikiPanel.vue';
 
@@ -19,6 +26,21 @@ interface WikiResult {
   titleSnippet: string;
   snippet: string;
   url: string;
+}
+
+interface ModResult {
+  id: string;
+  name: string;
+  description: string;
+  source: string;
+  sourceName: string;
+  url: string;
+  thumbnail?: string;
+  displayUrl: string;
+  downloads?: number;
+  author?: string;
+  categories?: string[];
+  projectType?: string;
 }
 
 const props = defineProps<{ initialQuery?: string }>();
@@ -34,30 +56,65 @@ const loading = ref(false);
 const error = ref<string | null>(null);
 const results = ref<WikiResult[]>([]);
 
+const modLoading = ref(false);
+const modError = ref<string | null>(null);
+const modResults = ref<ModResult[]>([]);
+
 const focused = ref(false);
 const suggestOpen = computed(() => focused.value && input.value.trim().length > 0);
 
 let ctrl: AbortController | null = null;
 
-async function runSearch(q: string) {
-  ctrl?.abort();
-  ctrl = new AbortController();
+async function runWiki(q: string, signal: AbortSignal) {
   loading.value = true;
   error.value = null;
   try {
     const res = await fetch(`/api/v1/wiki/search?q=${encodeURIComponent(q)}`, {
-      signal: ctrl.signal,
+      signal,
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data?.error ?? '搜索失败');
     results.value = data.results ?? [];
   } catch (err) {
-    if (ctrl.signal.aborted) return;
+    if (signal.aborted) return;
     error.value = err instanceof Error ? err.message : '搜索失败';
     results.value = [];
   } finally {
-    if (!ctrl.signal.aborted) loading.value = false;
+    if (!signal.aborted) loading.value = false;
   }
+}
+
+async function runMod(q: string, signal: AbortSignal) {
+  modLoading.value = true;
+  modError.value = null;
+  try {
+    const res = await fetch(
+      `/api/v1/mod/search?q=${encodeURIComponent(q)}&source=all`,
+      { signal },
+    );
+    const data = await res.json();
+    if (!res.ok) throw new Error(data?.error ?? '搜索失败');
+    modResults.value = data.results ?? [];
+  } catch (err) {
+    if (signal.aborted) return;
+    modError.value = err instanceof Error ? err.message : '搜索失败';
+    modResults.value = [];
+  } finally {
+    if (!signal.aborted) modLoading.value = false;
+  }
+}
+
+function runSearch(q: string) {
+  ctrl?.abort();
+  ctrl = new AbortController();
+  runWiki(q, ctrl.signal);
+  runMod(q, ctrl.signal);
+}
+
+function formatDownloads(n: number): string {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
+  return String(n);
 }
 
 function submit() {
@@ -163,7 +220,7 @@ onMounted(() => {
           >
             <span v-if="t === 'all'">全部</span>
             <span v-else-if="t === 'wiki'">Wiki{{ results.length ? ` (${results.length})` : '' }}</span>
-            <span v-else>Mod</span>
+            <span v-else>Mod{{ modResults.length ? ` (${modResults.length})` : '' }}</span>
           </button>
         </div>
 
@@ -179,7 +236,7 @@ onMounted(() => {
             {{ error }}
           </div>
           <p
-            v-else-if="!results.length"
+            v-else-if="tab === 'wiki' && !results.length"
             class="px-1 py-8 text-center text-sm text-mc-muted"
           >
             没有找到相关 Wiki 词条。
@@ -214,23 +271,99 @@ onMounted(() => {
           </a>
         </section>
 
-        <!-- Mod results (placeholder) -->
-        <section
-          v-if="tab === 'all' || tab === 'mod'"
-          class="rounded-xl border border-dashed border-mc-border p-6"
-        >
-          <div class="flex items-center gap-3 text-mc-muted">
-            <span
-              class="grid size-10 shrink-0 place-items-center rounded-lg bg-mc-surface-2 text-mc-grass"
-            >
-              <Package class="size-5" />
-            </span>
-            <div>
-              <p class="font-medium text-mc-text">Mod 聚合搜索即将上线</p>
-              <p class="text-sm">将聚合 Modrinth / CurseForge 等来源的搜索结果。</p>
-            </div>
+        <!-- Mod results -->
+        <section v-if="tab === 'all' || tab === 'mod'" class="space-y-3">
+          <p v-if="modLoading" class="px-1 py-8 text-center text-sm text-mc-muted">
+            搜索中…
+          </p>
+          <div
+            v-else-if="modError"
+            class="rounded-lg border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-300"
+          >
+            {{ modError }}
           </div>
+          <p
+            v-else-if="tab === 'mod' && !modResults.length"
+            class="px-1 py-8 text-center text-sm text-mc-muted"
+          >
+            没有找到相关 Mod。
+          </p>
+          <a
+            v-for="m in modResults"
+            :key="m.id"
+            :href="m.url"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="group flex gap-3 rounded-xl border border-mc-border bg-mc-surface p-4 transition hover:border-mc-grass/60"
+          >
+            <span
+              class="grid size-12 shrink-0 place-items-center overflow-hidden rounded-lg bg-mc-surface-2 text-mc-grass"
+            >
+              <img
+                v-if="m.thumbnail"
+                :src="m.thumbnail"
+                :alt="m.name"
+                class="size-full object-cover"
+                loading="lazy"
+              />
+              <Package v-else class="size-5" />
+            </span>
+            <div class="min-w-0 flex-1">
+              <div class="flex items-center gap-1.5 text-xs text-mc-muted">
+                <span
+                  class="rounded bg-mc-surface-2 px-1.5 py-0.5 font-medium text-mc-grass"
+                  >{{ m.sourceName }}</span
+                >
+                <span v-if="m.projectType" class="truncate">{{ m.projectType }}</span>
+              </div>
+              <h3
+                class="mt-1 flex items-center gap-1.5 font-semibold text-mc-text group-hover:text-mc-grass"
+              >
+                <span class="truncate">{{ m.name }}</span>
+                <ExternalLink
+                  class="size-3.5 shrink-0 text-mc-muted opacity-0 transition group-hover:opacity-100"
+                />
+              </h3>
+              <p
+                v-if="m.description"
+                class="mt-1 line-clamp-2 text-sm leading-relaxed text-mc-muted"
+              >
+                {{ m.description }}
+              </p>
+              <div
+                v-if="m.downloads != null || m.author || m.categories?.length"
+                class="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-mc-muted"
+              >
+                <span v-if="m.downloads != null" class="flex items-center gap-1">
+                  <Download class="size-3.5" />{{ formatDownloads(m.downloads) }}
+                </span>
+                <span v-if="m.author" class="flex items-center gap-1">
+                  <User class="size-3.5" />{{ m.author }}
+                </span>
+                <span v-if="m.categories?.length" class="truncate">{{
+                  m.categories.slice(0, 3).join(' · ')
+                }}</span>
+              </div>
+            </div>
+          </a>
         </section>
+
+        <!-- 全部 tab: a single empty message, only when nothing matched at all
+             (each section hides its own placeholder outside its dedicated tab). -->
+        <p
+          v-if="
+            tab === 'all' &&
+            !loading &&
+            !modLoading &&
+            !error &&
+            !modError &&
+            !results.length &&
+            !modResults.length
+          "
+          class="px-1 py-8 text-center text-sm text-mc-muted"
+        >
+          没有找到相关结果。
+        </p>
       </div>
     </div>
   </div>

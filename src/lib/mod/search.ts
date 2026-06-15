@@ -1,8 +1,11 @@
 /**
- * Mod search: turn the active whitelist into Bing queries, then group the
- * results back onto their source.
+ * Mod search: dispatch the active whitelist across its search backends and merge
+ * the results. Site:-search sources go through one Bing batch (described below);
+ * Modrinth, BBSMC (a Modrinth fork) and CurseForge use their native search APIs
+ * (see ./modrinth, ./curseforge). Every backend runs in parallel and a failing
+ * one is dropped unless it's the only source requested — see searchMods.
  *
- * Query construction (per spec):
+ * Bing query construction (per spec):
  *   - keyword is phrase-quoted for exact matching
  *   - a single source            → `site:<domain> "<q>"`
  *   - multiple sources           → `"<q>" (site:d1 OR site:d2 OR ...)`
@@ -19,6 +22,8 @@
 import { createHash } from 'node:crypto';
 
 import type { ModSource } from './sources';
+import { searchModrinth, searchBBSMC } from './modrinth';
+import { searchCurseForge } from './curseforge';
 
 export interface ModResult {
   /** Hash of the result URL — stable id. */
@@ -33,10 +38,18 @@ export interface ModResult {
   sourceName: string;
   /** Original link. */
   url: string;
-  /** Thumbnail, when Bing returns one. */
+  /** Thumbnail / icon, when the source provides one. */
   thumbnail?: string;
-  /** Breadcrumb URL from Bing. */
+  /** Breadcrumb URL from Bing (native providers reuse the canonical url). */
   displayUrl: string;
+  /** Download count — set by native providers (Modrinth / CurseForge). */
+  downloads?: number;
+  /** Author / owner — set by native providers. */
+  author?: string;
+  /** Category tags — set by native providers. */
+  categories?: string[];
+  /** Project type, e.g. mod / modpack / resourcepack — Modrinth only. */
+  projectType?: string;
 }
 
 export interface ModSearchResponse {
@@ -160,6 +173,41 @@ function toResult(item: any, source: ModSource): ModResult {
   return r;
 }
 
+/**
+ * Run every Bing plan for the bing-provider sources and classify each web
+ * result back onto its source. Dedup within this batch by url; cross-provider
+ * dedup happens when the tasks are merged in searchMods.
+ */
+async function bingTask(
+  q: string,
+  sources: ModSource[],
+  page: number,
+  signal?: AbortSignal,
+): Promise<ModResult[]> {
+  const batches = await Promise.all(
+    buildPlans(q, sources).map((p) =>
+      bingSearch(p.q, page, signal).then((items) => ({
+        items,
+        sources: p.sources,
+      })),
+    ),
+  );
+
+  const out: ModResult[] = [];
+  const seen = new Set<string>();
+  for (const { items, sources: planSources } of batches) {
+    for (const item of items) {
+      const url = String(item?.url ?? '');
+      if (!url || seen.has(url)) continue;
+      const src = matchSource(url, planSources);
+      if (!src) continue;
+      seen.add(url);
+      out.push(toResult(item, src));
+    }
+  }
+  return out;
+}
+
 export async function searchMods(opts: {
   q: string;
   /** Sources already narrowed to the requested `source` filter. */
@@ -171,25 +219,39 @@ export async function searchMods(opts: {
 }): Promise<ModSearchResponse> {
   const { q, sources, source, page, signal } = opts;
 
-  const batches = await Promise.all(
-    buildPlans(q, sources).map((p) =>
-      bingSearch(p.q, page, signal).then((items) => ({
-        items,
-        sources: p.sources,
-      })),
-    ),
+  // Split by provider: one Bing batch covers all site:-search sources, while
+  // Modrinth / CurseForge each get a native API call. (An absent provider —
+  // possible from stale cached forum data — counts as bing.)
+  const bingSources = sources.filter((s) => (s.provider ?? 'bing') === 'bing');
+  const tasks: Promise<ModResult[]>[] = [];
+  if (bingSources.length) tasks.push(bingTask(q, bingSources, page, signal));
+  for (const s of sources) {
+    if (s.provider === 'modrinth') tasks.push(searchModrinth(q, page, signal));
+    else if (s.provider === 'bbsmc') tasks.push(searchBBSMC(q, page, signal));
+    else if (s.provider === 'curseforge') {
+      tasks.push(searchCurseForge(q, page, signal));
+    }
+  }
+
+  // Run every backend; a single provider failing (e.g. a missing CurseForge key
+  // in `all` mode) just drops that source. Only when nothing succeeded do we
+  // surface the first error, so a lone failing source still yields a 503/502.
+  const settled = await Promise.allSettled(tasks);
+  const fulfilled = settled.filter(
+    (r): r is PromiseFulfilledResult<ModResult[]> => r.status === 'fulfilled',
   );
+  if (fulfilled.length === 0) {
+    const rejected = settled.find((r) => r.status === 'rejected');
+    if (rejected) throw (rejected as PromiseRejectedResult).reason;
+  }
 
   const results: ModResult[] = [];
   const seenUrl = new Set<string>();
-  for (const { items, sources: planSources } of batches) {
-    for (const item of items) {
-      const url = String(item?.url ?? '');
-      if (!url || seenUrl.has(url)) continue;
-      const src = matchSource(url, planSources);
-      if (!src) continue;
-      seenUrl.add(url);
-      results.push(toResult(item, src));
+  for (const r of fulfilled) {
+    for (const item of r.value) {
+      if (!item.url || seenUrl.has(item.url)) continue;
+      seenUrl.add(item.url);
+      results.push(item);
     }
   }
 

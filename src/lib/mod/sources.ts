@@ -18,6 +18,13 @@ import vm from 'node:vm';
 
 import { cacheGet, cacheSet } from '../cache/redis';
 
+/**
+ * How a source is searched: `bing` runs a `site:` web-search query (the default
+ * for big sites and every BBSPK forum); `modrinth`/`curseforge` hit their native
+ * search APIs instead. See lib/mod/search.ts for the per-provider dispatch.
+ */
+export type ModProvider = 'bing' | 'modrinth' | 'curseforge' | 'bbsmc';
+
 export interface ModSource {
   /** Short stable id derived from the domain, e.g. 'minebbs'. */
   id: string;
@@ -29,6 +36,8 @@ export interface ModSource {
   siteQuery: string;
   /** True for the hard-coded big sites. */
   fixed: boolean;
+  /** Search backend for this source (defaults to 'bing' when absent in cache). */
+  provider: ModProvider;
 }
 
 const SOURCES_KEY = 'mcsearch:mod:sources';
@@ -48,6 +57,7 @@ export const FIXED_SOURCES: ModSource[] = [
     domain: 'mcmod.info',
     siteQuery: 'site:mcmod.info',
     fixed: true,
+    provider: 'bing',
   },
   {
     id: 'bilibili',
@@ -55,6 +65,7 @@ export const FIXED_SOURCES: ModSource[] = [
     domain: 'bilibili.com',
     siteQuery: 'site:bilibili.com',
     fixed: true,
+    provider: 'bing',
   },
   {
     id: 'mcwiki',
@@ -62,6 +73,39 @@ export const FIXED_SOURCES: ModSource[] = [
     domain: 'zh.minecraft.wiki',
     siteQuery: 'site:zh.minecraft.wiki',
     fixed: true,
+    provider: 'bing',
+  },
+  {
+    id: 'modrinth',
+    name: 'Modrinth',
+    domain: 'modrinth.com',
+    siteQuery: 'site:modrinth.com',
+    fixed: true,
+    provider: 'modrinth',
+  },
+  {
+    id: 'curseforge',
+    name: 'CurseForge',
+    domain: 'curseforge.com',
+    siteQuery: 'site:curseforge.com',
+    fixed: true,
+    provider: 'curseforge',
+  },
+  {
+    id: 'bbsmc',
+    name: 'BBSMC',
+    domain: 'bbsmc.net',
+    siteQuery: 'site:bbsmc.net',
+    fixed: true,
+    provider: 'bbsmc',
+  },
+  {
+    id: 'tecodocs',
+    name: 'TecoStudio 文档',
+    domain: 'docs.tecostudio.cn',
+    siteQuery: 'site:docs.tecostudio.cn',
+    fixed: true,
+    provider: 'bing',
   },
 ];
 
@@ -152,6 +196,7 @@ function parseForums(code: string): ModSource[] {
       domain: host,
       siteQuery: `site:${host}`,
       fixed: false,
+      provider: 'bing',
     });
   }
   return out;

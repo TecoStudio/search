@@ -28,10 +28,13 @@ bun run typecheck    # tsc --noEmit
 
 ### 环境变量
 
-| 变量        | 说明                                       | 默认                |
-| ----------- | ------------------------------------------ | ------------------- |
-| `REDIS_URL` | Redis 连接串；未设置时缓存全部降级为 no-op | _（无，缓存关闭）_   |
-| `FONTS_DIR` | Banner 字体目录覆盖                         | `src/assets/fonts/` |
+| 变量                 | 说明                                                                 | 默认                |
+| -------------------- | ------------------------------------------------------------------- | ------------------- |
+| `REDIS_URL`          | Redis 连接串；未设置时缓存全部降级为 no-op                           | _（无，缓存关闭）_   |
+| `BING_SEARCH_KEY`    | Bing Web Search API Key；缺省时 Mod 搜索的 site: 来源（论坛/大站）返回 503 | _（无）_            |
+| `BING_SEARCH_ENDPOINT` | Bing 搜索端点覆盖                                                  | `…/v7.0/search`     |
+| `CURSEFORGE_API_KEY` | CurseForge API Key；缺省时 CurseForge 来源在 `all` 模式被跳过、单独查询返回 503 | _（无，CF 关闭）_   |
+| `FONTS_DIR`          | Banner 字体目录覆盖                                                  | `src/assets/fonts/` |
 
 ## 已实现的 API
 
@@ -100,6 +103,6 @@ src/
 - [x] 服务器状态查询（Java + Bedrock，SSE）
 - [x] MOTD 解析（§ 格式码 + JSON Chat Component）
 - [x] Banner / 图标生成（Satori + resvg）
-- [ ] Mod 聚合搜索（MC百科 / MineBBS / B站）
+- [x] Mod 聚合搜索（Modrinth / BBSMC / CurseForge 原生 API + MC百科 / B站 / BBSPK 论坛 Bing site:）
 - [ ] API 文档（MDX）与 Playground
 - [ ] 部署配置（k8s：PostgreSQL / Redis / Meilisearch）

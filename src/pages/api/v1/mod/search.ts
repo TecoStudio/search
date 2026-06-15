@@ -15,6 +15,7 @@ import type { APIRoute } from 'astro';
 import type { ModSource } from '../../../../lib/mod/sources';
 import { getSources, filterSources, initSources } from '../../../../lib/mod/sources';
 import { searchMods, BingNotConfiguredError } from '../../../../lib/mod/search';
+import { CurseForgeNotConfiguredError } from '../../../../lib/mod/curseforge';
 import { requireStringParam } from '../../../../lib/http/params';
 import { apiHeaders, jsonResponse } from '../../../../lib/http/headers';
 import { cacheGet, cacheSet } from '../../../../lib/cache/redis';
@@ -71,7 +72,10 @@ export const GET: APIRoute = async ({ url, request }) => {
     headers.set('X-Sources-Count', String(sources.length));
     return new Response(body, { status: 200, headers });
   } catch (err) {
-    if (err instanceof BingNotConfiguredError) {
+    if (
+      err instanceof BingNotConfiguredError ||
+      err instanceof CurseForgeNotConfiguredError
+    ) {
       return jsonResponse({ error: err.message }, 503, { start });
     }
     return jsonResponse(

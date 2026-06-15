@@ -85,7 +85,7 @@ export const API_ENDPOINTS: ApiEndpoint[] = [
     path: '/api/v1/mod/search',
     title: 'Mod 搜索',
     summary:
-      '在固定大站（MC百科 / B站 / MC Wiki）与 BBSPK 动态论坛白名单内用 Bing 聚合搜索 Mod / 资源，按来源归类。缓存 3600s。',
+      '聚合 Modrinth / BBSMC / CurseForge 原生搜索 API 与固定大站（MC百科 / B站 / MC Wiki）、BBSPK 动态论坛白名单（Bing site: 搜索），按来源归类。缓存 3600s。',
     responseType: 'json',
     params: [
       {
@@ -97,7 +97,8 @@ export const API_ENDPOINTS: ApiEndpoint[] = [
       {
         name: 'source',
         required: false,
-        description: '来源过滤：all | mcmod | bilibili | <论坛 id>',
+        description:
+          '来源过滤：all | modrinth | bbsmc | curseforge | mcmod | bilibili | <论坛 id>',
         example: 'all',
       },
       {
