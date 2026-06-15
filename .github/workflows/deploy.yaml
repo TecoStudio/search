@@ -16,6 +16,12 @@ permissions:
 jobs:
   build-deploy:
     runs-on: ubuntu-latest
+    # Tracked deployment: shows up in the repo's Environments / Deployments UI
+    # with a clickable link to the live site, and is marked success/failure
+    # based on this job's result.
+    environment:
+      name: production
+      url: https://search.tecostudio.cn
     steps:
       - uses: actions/checkout@v4
 
