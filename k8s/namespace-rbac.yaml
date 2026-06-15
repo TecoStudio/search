@@ -1,0 +1,24 @@
+# One-time cluster bootstrap for this app (apply with the ADMIN kubeconfig):
+#   KUBECONFIG=/Users/jhl/Documents/Dev/k8s/kubeconfig kubectl apply -f k8s/namespace-rbac.yaml
+#
+# Creates the app namespace and grants the shared `deployer` ServiceAccount
+# (in the `web` namespace) the existing global `app-deployer` ClusterRole,
+# scoped to this namespace. CI then deploys with the deployer kubeconfig.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: mcsearch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: deployer
+  namespace: mcsearch
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: app-deployer # existing global ClusterRole
+subjects:
+  - kind: ServiceAccount
+    name: deployer
+    namespace: web # reuse the shared deployer SA

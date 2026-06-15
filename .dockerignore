@@ -1,0 +1,14 @@
+node_modules
+dist
+.astro
+.git
+.github
+.vscode
+.idea
+k8s
+*.log
+.DS_Store
+.env
+.env.production
+README.md
+AGENTS.md

@@ -1,0 +1,126 @@
+# mcsearch — Astro SSR (@astrojs/node standalone) + ephemeral Redis cache.
+# Image is public (ghcr.io/tecostudio/search) so no imagePullSecrets are needed.
+# CI overrides the web image to the commit SHA on each deploy.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web
+  namespace: mcsearch
+  labels: { app: web }
+spec:
+  replicas: 2
+  selector:
+    matchLabels: { app: web }
+  template:
+    metadata:
+      labels: { app: web }
+    spec:
+      securityContext: # restricted PodSecurity compliant
+        runAsNonRoot: true
+        runAsUser: 1000
+        seccompProfile: { type: RuntimeDefault }
+      containers:
+        - name: web
+          image: ghcr.io/tecostudio/search:latest # CI overrides to commit SHA
+          ports:
+            - containerPort: 4321
+          env:
+            - name: REDIS_URL
+              value: redis://redis:6379
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities: { drop: ["ALL"] }
+          readinessProbe:
+            httpGet: { path: /api/v1/health, port: 4321 }
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: { path: /api/v1/health, port: 4321 }
+            initialDelaySeconds: 20
+            periodSeconds: 20
+          resources:
+            requests: { cpu: 50m, memory: 192Mi }
+            limits: { memory: 512Mi }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: web
+  namespace: mcsearch
+spec:
+  selector: { app: web }
+  ports:
+    - port: 80
+      targetPort: 4321
+---
+# Ephemeral cache — no persistence (safe to lose); bounded LRU. Keeps wiki/mod
+# proxy traffic off the upstream APIs and enables X-Cache HIT.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis
+  namespace: mcsearch
+  labels: { app: redis }
+spec:
+  replicas: 1
+  strategy: { type: Recreate }
+  selector:
+    matchLabels: { app: redis }
+  template:
+    metadata:
+      labels: { app: redis }
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 999 # redis user in the official image
+        seccompProfile: { type: RuntimeDefault }
+      containers:
+        - name: redis
+          image: redis:7-alpine
+          args:
+            ["--maxmemory", "64mb", "--maxmemory-policy", "allkeys-lru", "--save", ""]
+          ports:
+            - containerPort: 6379
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities: { drop: ["ALL"] }
+          readinessProbe:
+            tcpSocket: { port: 6379 }
+            initialDelaySeconds: 2
+          resources:
+            requests: { cpu: 10m, memory: 16Mi }
+            limits: { memory: 96Mi }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis
+  namespace: mcsearch
+spec:
+  selector: { app: redis }
+  ports:
+    - port: 6379
+      targetPort: 6379
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: web
+  namespace: mcsearch
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts: [search.tecostudio.cn]
+      secretName: web-tls
+  rules:
+    - host: search.tecostudio.cn
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: web
+                port: { number: 80 }
