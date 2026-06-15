@@ -1,0 +1,18 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import ServerQuery from '../../components/islands/ServerQuery.vue';
+---
+
+<Layout title="服务器查询">
+  <div class="space-y-2">
+    <h1 class="text-2xl font-bold">服务器状态查询</h1>
+    <p class="text-sm text-mc-muted">
+      实时查询 Java / 基岩版 Minecraft 服务器的在线状态、MOTD、玩家数与延迟。支持
+      SRV 记录自动解析。
+    </p>
+  </div>
+
+  <div class="mt-6">
+    <ServerQuery client:load />
+  </div>
+</Layout>

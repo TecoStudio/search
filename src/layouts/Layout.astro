@@ -1,0 +1,65 @@
+---
+import '../styles/global.css';
+
+interface Props {
+  /** Page name; rendered as 「{title} — MCSearch | 搜遍 MC 世界」 */
+  title?: string;
+  description?: string;
+  /** Use a wider main column (docs / playground). */
+  wide?: boolean;
+}
+
+const DEFAULT_DESCRIPTION =
+  'MCSearch — 搜遍 MC 世界。服务器状态查询、Mod 聚合搜索、Banner 生成，为简体中文 Minecraft 社区打造的综合搜索平台。';
+
+const { title, description = DEFAULT_DESCRIPTION, wide = false } = Astro.props;
+const mainWidth = wide ? 'max-w-7xl' : 'max-w-5xl';
+const fullTitle = title
+  ? `${title} — MCSearch | 搜遍 MC 世界`
+  : 'MCSearch | 搜遍 MC 世界';
+---
+
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="generator" content={Astro.generator} />
+    <title>{fullTitle}</title>
+    <meta name="description" content={description} />
+    <meta property="og:title" content={fullTitle} />
+    <meta property="og:description" content={description} />
+    <meta property="og:type" content="website" />
+  </head>
+  <body class="bg-mc-bg text-mc-text min-h-screen flex flex-col">
+    <header class="border-b border-mc-border bg-mc-surface/60 backdrop-blur">
+      <nav
+        class="flex w-full items-center justify-between px-4 py-3 sm:px-6"
+      >
+        <a href="/" class="flex items-center gap-2 font-bold">
+          <span
+            class="grid size-7 place-items-center rounded bg-mc-grass text-sm text-[#06210a]"
+            >MC</span
+          >
+          <span class="text-lg">MCSearch</span>
+          <span class="hidden text-xs text-mc-muted sm:inline">搜遍 MC 世界</span>
+        </a>
+        <div class="flex items-center gap-4 text-sm text-mc-muted">
+          <a href="/search" class="hover:text-mc-text">Mod</a>
+          <a href="/tools" class="hover:text-mc-text">小工具</a>
+          <a href="/docs" class="hover:text-mc-text">文档</a>
+          <a href="/playground" class="hover:text-mc-text">Playground</a>
+        </div>
+      </nav>
+    </header>
+
+    <main class={`mx-auto w-full ${mainWidth} flex-1 px-4 py-8`}>
+      <slot />
+    </main>
+
+    <footer class="border-t border-mc-border py-6 text-center text-xs text-mc-muted">
+      MCSearch · 搜遍 MC 世界 · 为简体中文 Minecraft 社区打造
+    </footer>
+  </body>
+</html>

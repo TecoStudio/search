@@ -1,0 +1,72 @@
+---
+import Layout from './Layout.astro';
+import DocCodeBlock from '../components/islands/DocCodeBlock.vue';
+
+interface DocLink {
+  slug: string;
+  title: string;
+  order: number;
+}
+
+interface Props {
+  docs: DocLink[];
+  current: string;
+  title: string;
+  description: string;
+  endpoint?: string;
+}
+
+const { docs, current, title, description, endpoint } = Astro.props;
+const nav = [...docs].sort((a, b) => a.order - b.order);
+---
+
+<Layout title={title} description={description} wide>
+  <div
+    class="grid gap-8 lg:grid-cols-[180px_minmax(0,1fr)] xl:grid-cols-[180px_minmax(0,1fr)_minmax(0,380px)]"
+  >
+    <!-- Left nav -->
+    <nav class="flex flex-col gap-0.5 text-sm lg:sticky lg:top-6 lg:self-start">
+      <span class="mb-2 text-xs font-semibold uppercase tracking-wide text-mc-muted"
+        >文档</span
+      >
+      {
+        nav.map((d) => (
+          <a
+            href={`/docs/${d.slug}`}
+            class={`rounded-lg px-3 py-1.5 ${
+              d.slug === current
+                ? 'bg-mc-surface-2 text-mc-text'
+                : 'text-mc-muted hover:text-mc-text'
+            }`}
+          >
+            {d.title}
+          </a>
+        ))
+      }
+      <a
+        href="/playground"
+        class="mt-2 rounded-lg px-3 py-1.5 text-mc-grass hover:text-mc-text"
+        >Playground →</a
+      >
+    </nav>
+
+    <!-- Center content -->
+    <article class="doc-body min-w-0">
+      <h1>{title}</h1>
+      <p class="lead">{description}</p>
+      <slot />
+    </article>
+
+    <!-- Right code / mini-playground -->
+    {
+      endpoint && (
+        <aside class="lg:col-span-2 xl:col-auto">
+          <div class="lg:sticky lg:top-6">
+            <h2 class="mb-3 text-sm font-semibold text-mc-muted">调试 / 代码示例</h2>
+            <DocCodeBlock endpointId={endpoint} client:only="vue" />
+          </div>
+        </aside>
+      )
+    }
+  </div>
+</Layout>

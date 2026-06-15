@@ -1,0 +1,41 @@
+---
+title: 服务器状态查询
+description: 以 SSE 流式返回 Java / 基岩版服务器的在线状态、MOTD、玩家与延迟。
+order: 2
+endpoint: server-status
+---
+
+`GET /api/v1/server/status`
+
+该接口以 **SSE**（`text/event-stream`）流式返回结果：先逐步推送解析进度，最后推送完整状态。
+适合在前端实时展示「正在解析 → 连接中 → 握手 → 完成」的过程。
+
+## 事件序列
+
+| event    | data                          | 说明                       |
+| -------- | ----------------------------- | -------------------------- |
+| `step`   | `dns` / `connecting` / `handshake` | 当前进行到的阶段      |
+| `result` | 完整状态 JSON                 | 查询成功，随后关闭流       |
+| `error`  | `{ message, ... }`            | 任一阶段失败              |
+
+Java 版优先解析 SRV 记录（`_minecraft._tcp.<host>`），失败后回退默认端口 25565；
+基岩版使用 RakNet Unconnected Ping（默认端口 19132）。超时：DNS 3s / TCP 3s / 读取 2s。
+
+## 结果字段
+
+```json
+{
+  "host": "mc.hypixel.net",
+  "port": 25565,
+  "ip": "172.65.197.160",
+  "online": true,
+  "latency": 42,
+  "version": "Requires MC 1.8 / 1.21",
+  "protocol": 47,
+  "players": { "online": 24972, "max": 200000, "sample": [] },
+  "motd": { "raw": "§a...", "html": "<span ...>", "plain": "..." },
+  "favicon": "data:image/png;base64,..."
+}
+```
+
+`motd` 同时提供三种形态：`raw`（原始含 § 码）、`html`（带颜色的 span）、`plain`（纯文本）。

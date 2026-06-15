@@ -1,0 +1,12 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import SearchApp from '../../components/islands/SearchApp.vue';
+
+export const prerender = false;
+
+const q = Astro.url.searchParams.get('q')?.trim() ?? '';
+---
+
+<Layout title={q ? `${q} — 搜索` : '搜索'} wide>
+  <SearchApp initialQuery={q} client:load />
+</Layout>

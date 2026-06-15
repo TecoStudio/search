@@ -1,0 +1,30 @@
+---
+title: 状态 Banner
+description: 实时生成 800×200 的服务器状态横幅图（PNG）。
+order: 3
+endpoint: server-banner
+---
+
+`GET /api/v1/server/banner`
+
+实时 ping 服务器并用 Satori 渲染为 **800×200 PNG** 横幅，内容包含 favicon、MOTD（带格式色）、
+在线人数、版本与延迟。服务器离线时也会出图，显示「服务器离线」。
+
+结果会写入 Redis 缓存（`mcsearch:server:banner:<host>:<port>`，TTL 60s），命中时 `X-Cache: HIT`。
+
+## 直接嵌入
+
+可以把接口地址直接作为图片地址使用：
+
+```html
+<img
+  src="/api/v1/server/banner?host=mc.hypixel.net"
+  width="800"
+  height="200"
+  alt="server banner"
+/>
+```
+
+## 参数
+
+与[公共参数](/docs/introduction)一致：`host`（必填）、`port`、`edition`。

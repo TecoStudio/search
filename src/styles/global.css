@@ -1,0 +1,150 @@
+@import 'tailwindcss';
+
+/* MCSearch design tokens — dark, MC-flavored */
+@theme {
+  --color-mc-bg: #0d0f12;
+  --color-mc-surface: #16191f;
+  --color-mc-surface-2: #1d2128;
+  --color-mc-border: #2a2f38;
+  --color-mc-grass: #5db85d;
+  --color-mc-grass-dark: #3f8f3f;
+  --color-mc-gold: #fcaa00;
+  --color-mc-text: #e6e8eb;
+  --color-mc-muted: #8b94a3;
+
+  --font-sans: 'Inter', system-ui, -apple-system, 'PingFang SC',
+    'Microsoft YaHei', sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, 'SFMono-Regular', monospace;
+}
+
+html {
+  background-color: var(--color-mc-bg);
+  color: #e6e8eb;
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+}
+
+/* MOTD rendering uses Minecraft-style monospace for authenticity */
+.motd {
+  font-family: var(--font-mono);
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+::selection {
+  background: var(--color-mc-grass);
+  color: #06210a;
+}
+
+/* Wiki search highlight (<mark>) injected via v-html — scoped styles can't
+   reach it, so it's styled globally to fit the dark theme. */
+.wiki-snippet mark {
+  background: transparent;
+  color: var(--color-mc-grass);
+  font-weight: 600;
+}
+
+/* Lightweight prose styles for MDX docs (no typography plugin) */
+.doc-body {
+  line-height: 1.7;
+  color: #cfd3da;
+}
+.doc-body h1 {
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: #fff;
+  margin: 0 0 0.25rem;
+}
+.doc-body h2 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #fff;
+  margin: 2rem 0 0.75rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--color-mc-border);
+}
+.doc-body h3 {
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: #fff;
+  margin: 1.5rem 0 0.5rem;
+}
+.doc-body p,
+.doc-body ul,
+.doc-body ol {
+  margin: 0.75rem 0;
+}
+.doc-body ul,
+.doc-body ol {
+  padding-left: 1.25rem;
+}
+.doc-body ul {
+  list-style: disc;
+}
+.doc-body ol {
+  list-style: decimal;
+}
+.doc-body li {
+  margin: 0.25rem 0;
+}
+.doc-body a {
+  color: var(--color-mc-grass);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.doc-body a:hover {
+  color: #7fd47f;
+}
+.doc-body :not(pre) > code {
+  font-family: var(--font-mono);
+  font-size: 0.85em;
+  background: var(--color-mc-surface-2);
+  border: 1px solid var(--color-mc-border);
+  border-radius: 4px;
+  padding: 0.1em 0.35em;
+}
+.doc-body pre {
+  background: var(--color-mc-surface) !important;
+  border: 1px solid var(--color-mc-border);
+  border-radius: 0.5rem;
+  padding: 0.85rem 1rem;
+  overflow-x: auto;
+  margin: 1rem 0;
+  font-size: 0.85rem;
+}
+.doc-body pre code {
+  font-family: var(--font-mono);
+}
+.doc-body table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1rem 0;
+  font-size: 0.9rem;
+}
+.doc-body th,
+.doc-body td {
+  border: 1px solid var(--color-mc-border);
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+}
+.doc-body th {
+  background: var(--color-mc-surface-2);
+  font-weight: 600;
+  color: #fff;
+}
+.doc-body blockquote {
+  border-left: 3px solid var(--color-mc-grass);
+  padding-left: 1rem;
+  margin: 1rem 0;
+  color: var(--color-mc-muted);
+}
+.doc-body .lead {
+  color: var(--color-mc-muted);
+  font-size: 1.05rem;
+}

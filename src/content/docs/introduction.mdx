@@ -1,0 +1,45 @@
+---
+title: 介绍
+description: MCSearch 统一 API 概览 —— 基础地址、通用响应头与公共参数。
+order: 1
+---
+
+MCSearch 对外提供统一的 HTTP / SSE API，覆盖服务器状态查询、状态 Banner、服务器图标等能力。
+所有接口无需鉴权，默认允许跨域调用。
+
+## 基础地址
+
+所有接口位于 `/api/v1` 路径下，例如：
+
+```bash
+https://<your-host>/api/v1/server/status?host=mc.hypixel.net
+```
+
+## 通用响应头
+
+每个 `/api/v1/*` 接口都会返回以下响应头：
+
+| 响应头                         | 说明                                |
+| ------------------------------ | ----------------------------------- |
+| `X-Powered-By`                 | 固定为 `MCSearch`                    |
+| `X-Cache`                      | `HIT` 命中缓存 / `MISS` 未命中      |
+| `X-Response-Time`              | 服务端处理耗时（毫秒）              |
+| `Access-Control-Allow-Origin`  | `*`，允许任意来源跨域               |
+
+## 公共参数
+
+服务器类接口共用以下查询参数：
+
+| 参数      | 必填 | 说明                                         |
+| --------- | ---- | -------------------------------------------- |
+| `host`    | 是   | 服务器地址（域名或 IP）                      |
+| `port`    | 否   | 端口；缺省时走 SRV 解析或版本默认端口        |
+| `edition` | 否   | `java`（默认）/ `bedrock` / `auto`           |
+
+## 接口一览
+
+- [服务器状态查询](/docs/server-status) — SSE 实时状态
+- [状态 Banner](/docs/server-banner) — PNG 状态横幅
+- [服务器图标](/docs/server-icon) — PNG favicon
+
+> 想直接试一试？打开 [Playground](/playground) 在浏览器里调用任意接口。

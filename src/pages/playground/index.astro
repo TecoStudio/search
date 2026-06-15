@@ -1,0 +1,16 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import ApiPlayground from '../../components/islands/ApiPlayground.vue';
+---
+
+<Layout title="API Playground" wide>
+  <div class="mb-6 space-y-1">
+    <h1 class="text-2xl font-bold">API Playground</h1>
+    <p class="text-sm text-mc-muted">
+      在浏览器里直接调用 MCSearch API：填写参数、一键生成
+      curl/JS/Python，运行后查看流式响应与响应头。
+    </p>
+  </div>
+
+  <ApiPlayground client:only="vue" />
+</Layout>

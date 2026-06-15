@@ -1,0 +1,26 @@
+---
+title: 服务器图标
+description: 返回服务器 favicon（64×64 PNG），无图标时返回占位图。
+order: 4
+endpoint: server-icon
+---
+
+`GET /api/v1/server/icon`
+
+返回服务器的 favicon（**64×64 PNG**）。当服务器未设置图标或离线时，返回一个绿色占位图。
+结果缓存 60s（`mcsearch:server:icon:<host>:<port>`）。
+
+## 直接嵌入
+
+```html
+<img
+  src="/api/v1/server/icon?host=mc.hypixel.net"
+  width="64"
+  height="64"
+  alt="server icon"
+/>
+```
+
+## 参数
+
+与[公共参数](/docs/introduction)一致：`host`（必填）、`port`、`edition`。
