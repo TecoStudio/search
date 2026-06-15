@@ -80,6 +80,35 @@ export const API_ENDPOINTS: ApiEndpoint[] = [
     params: SERVER_PARAMS,
   },
   {
+    id: 'mod-search',
+    method: 'GET',
+    path: '/api/v1/mod/search',
+    title: 'Mod 搜索',
+    summary:
+      '在固定大站（MC百科 / B站 / MC Wiki）与 BBSPK 动态论坛白名单内用 Bing 聚合搜索 Mod / 资源，按来源归类。缓存 3600s。',
+    responseType: 'json',
+    params: [
+      {
+        name: 'q',
+        required: true,
+        description: '搜索关键词',
+        example: '工业时代',
+      },
+      {
+        name: 'source',
+        required: false,
+        description: '来源过滤：all | mcmod | bilibili | <论坛 id>',
+        example: 'all',
+      },
+      {
+        name: 'page',
+        required: false,
+        description: '页码（从 1 开始）',
+        example: '1',
+      },
+    ],
+  },
+  {
     id: 'wiki-search',
     method: 'GET',
     path: '/api/v1/wiki/search',

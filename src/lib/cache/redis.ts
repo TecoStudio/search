@@ -8,7 +8,8 @@
  * Key conventions (per spec):
  *   mcsearch:server:status:<host>:<port>   TTL 30s
  *   mcsearch:server:banner:<host>:<port>   TTL 60s
- *   mcsearch:mod:search:<q>:<source>       TTL 300s
+ *   mcsearch:mod:sources                   TTL 21600s
+ *   mcsearch:mod:search:<q>:<source>       TTL 3600s
  */
 import Redis from 'ioredis';
 
