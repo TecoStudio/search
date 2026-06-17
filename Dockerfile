@@ -21,7 +21,15 @@ FROM node:22-slim AS runtime
 WORKDIR /app
 ENV NODE_ENV=production \
     HOST=0.0.0.0 \
-    PORT=4321
+    PORT=4321 \
+    CHROMIUM_PATH=/usr/bin/chromium
+
+# Chromium for the Bing web-search scraper (src/lib/mod/browser.ts). The Debian
+# package pulls its own shared-lib deps; fonts-noto-cjk renders the zh-CN SERP.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        chromium fonts-liberation fonts-noto-cjk \
+    && rm -rf /var/lib/apt/lists/*
 
 # Server bundle + externalized deps + the font buffers read at runtime from
 # $CWD/src/assets/fonts (see src/lib/banner/fonts.ts).

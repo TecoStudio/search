@@ -38,9 +38,13 @@ spec:
             httpGet: { path: /api/v1/health, port: 4321 }
             initialDelaySeconds: 20
             periodSeconds: 20
+          # Headless Chromium (the Bing scraper) idles ~150Mi and grows with
+          # concurrent tabs, so the web pod needs far more headroom than the
+          # bare Astro server did. --disable-dev-shm-usage keeps Chromium off
+          # the tiny default /dev/shm (no extra volume needed).
           resources:
-            requests: { cpu: 50m, memory: 192Mi }
-            limits: { memory: 512Mi }
+            requests: { cpu: 100m, memory: 256Mi }
+            limits: { memory: 1Gi }
 ---
 apiVersion: v1
 kind: Service

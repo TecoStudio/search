@@ -14,7 +14,7 @@ import type { APIRoute } from 'astro';
 
 import type { ModSource } from '../../../../lib/mod/sources';
 import { getSources, filterSources, initSources } from '../../../../lib/mod/sources';
-import { searchMods, BingNotConfiguredError } from '../../../../lib/mod/search';
+import { searchMods } from '../../../../lib/mod/search';
 import { CurseForgeNotConfiguredError } from '../../../../lib/mod/curseforge';
 import { requireStringParam } from '../../../../lib/http/params';
 import { apiHeaders, jsonResponse } from '../../../../lib/http/headers';
@@ -63,7 +63,7 @@ export const GET: APIRoute = async ({ url, request }) => {
     return new Response(cached, { status: 200, headers });
   }
 
-  // 4-7. Query Bing, group results, cache, return.
+  // 4-7. Search (Bing scrape + native APIs), group results, cache, return.
   try {
     const data = await searchMods({ q, sources, source, page, signal: request.signal });
     const body = JSON.stringify(data);
@@ -72,10 +72,7 @@ export const GET: APIRoute = async ({ url, request }) => {
     headers.set('X-Sources-Count', String(sources.length));
     return new Response(body, { status: 200, headers });
   } catch (err) {
-    if (
-      err instanceof BingNotConfiguredError ||
-      err instanceof CurseForgeNotConfiguredError
-    ) {
+    if (err instanceof CurseForgeNotConfiguredError) {
       return jsonResponse({ error: err.message }, 503, { start });
     }
     return jsonResponse(

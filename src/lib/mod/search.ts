@@ -15,15 +15,17 @@
  * Because bilibili needs a different query shape it can't share the combined
  * OR query, so we run one combined query for the rest plus one per special
  * source, in parallel (Promise.all), and classify each returned result by its
- * host. Search engine: Bing Web Search API (Azure). Credentials come from env:
- *   BING_SEARCH_KEY       (required) Ocp-Apim-Subscription-Key
- *   BING_SEARCH_ENDPOINT  (optional) defaults to the v7 web-search endpoint
+ * host. Search engine: Bing, scraped via headless Chromium (see ./browser) —
+ * no API key. We navigate bing.com/search and parse the #b_results list, so a
+ * single results page yields ~10 organic hits (vs the API's 20); pagination
+ * still works through Bing's 1-based `first` offset.
  */
 import { createHash } from 'node:crypto';
 
 import type { ModSource } from './sources';
 import { searchModrinth, searchBBSMC } from './modrinth';
 import { searchCurseForge } from './curseforge';
+import { withPage, initBrowserShutdown } from './browser';
 
 export interface ModResult {
   /** Hash of the result URL — stable id. */
@@ -60,18 +62,14 @@ export interface ModSearchResponse {
   results: ModResult[];
 }
 
-/** Thrown when BING_SEARCH_KEY is missing, so the route can answer 503. */
-export class BingNotConfiguredError extends Error {
-  constructor() {
-    super('Bing Search API key not configured (set BING_SEARCH_KEY)');
-    this.name = 'BingNotConfiguredError';
-  }
-}
-
-const BING_DEFAULT_ENDPOINT = 'https://api.bing.microsoft.com/v7.0/search';
+const BING_SEARCH_URL = 'https://www.bing.com/search';
 const BILIBILI_DOMAIN = 'bilibili.com';
-const PAGE_SIZE = 20;
-const TIMEOUT_MS = 8000;
+/** Organic results per Bing SERP — used to map a page number to the `first` offset. */
+const PAGE_SIZE = 10;
+const TIMEOUT_MS = 12000;
+
+// Ensure Chromium is torn down on server shutdown (idempotent).
+initBrowserShutdown();
 
 /** Phrase-quote the keyword; collapse stray quotes so the operator survives. */
 function quoted(q: string): string {
@@ -102,42 +100,53 @@ function buildPlans(q: string, sources: ModSource[]): QueryPlan[] {
   return plans;
 }
 
-/** Run one Bing web-search query, returning the raw webPages items. */
+/**
+ * Run one Bing web-search query by scraping bing.com/search in headless
+ * Chromium, returning items shaped like the old API's webPages values
+ * ({ url, name, snippet }) so the downstream classify/dedup code is unchanged.
+ */
 async function bingSearch(
   query: string,
   page: number,
   signal?: AbortSignal,
 ): Promise<any[]> {
-  const key = process.env.BING_SEARCH_KEY;
-  if (!key) throw new BingNotConfiguredError();
-  const endpoint = process.env.BING_SEARCH_ENDPOINT || BING_DEFAULT_ENDPOINT;
-
-  const url = new URL(endpoint);
+  const url = new URL(BING_SEARCH_URL);
   url.searchParams.set('q', query);
-  url.searchParams.set('count', String(PAGE_SIZE));
-  url.searchParams.set('offset', String((Math.max(1, page) - 1) * PAGE_SIZE));
+  // Bing's `first` is the 1-based index of the first result on the page.
+  url.searchParams.set('first', String((Math.max(1, page) - 1) * PAGE_SIZE + 1));
+  url.searchParams.set('setlang', 'zh-CN');
   url.searchParams.set('mkt', 'zh-CN');
-  url.searchParams.set('responseFilter', 'Webpages');
-  url.searchParams.set('textDecorations', 'false');
 
-  const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), TIMEOUT_MS);
-  if (signal) {
-    if (signal.aborted) ctrl.abort();
-    else signal.addEventListener('abort', () => ctrl.abort(), { once: true });
-  }
-
-  try {
-    const res = await fetch(url, {
-      headers: { 'Ocp-Apim-Subscription-Key': key, Accept: 'application/json' },
-      signal: ctrl.signal,
+  return withPage(async (page) => {
+    if (signal) {
+      if (signal.aborted) throw new Error('aborted');
+      signal.addEventListener('abort', () => void page.close().catch(() => {}), {
+        once: true,
+      });
+    }
+    await page.goto(url.toString(), {
+      waitUntil: 'domcontentloaded',
+      timeout: TIMEOUT_MS,
     });
-    if (!res.ok) throw new Error(`Bing API responded ${res.status}`);
-    const data = await res.json();
-    return Array.isArray(data?.webPages?.value) ? data.webPages.value : [];
-  } finally {
-    clearTimeout(timer);
-  }
+
+    // Parse the organic results list. Title + link come from `h2 > a`; the
+    // snippet from the caption paragraph (with a couple of known fallbacks).
+    return page.$$eval('#b_results > li.b_algo', (nodes) =>
+      nodes
+        .map((li) => {
+          const a = li.querySelector('h2 > a') as HTMLAnchorElement | null;
+          const href = a?.href ?? '';
+          const name = a?.textContent?.trim() ?? '';
+          const snippetEl =
+            li.querySelector('.b_caption p') ||
+            li.querySelector('.b_algoSlug') ||
+            li.querySelector('.b_caption');
+          const snippet = snippetEl?.textContent?.trim() ?? '';
+          return { url: href, name, snippet, displayUrl: href };
+        })
+        .filter((r) => r.url),
+    );
+  });
 }
 
 function hostOf(url: string): string {
