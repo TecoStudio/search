@@ -2,6 +2,8 @@
 
 > 为简体中文 Minecraft 社区打造的综合搜索平台：服务器状态查询、Mod 聚合搜索、Banner 生成，统一对外 API。
 
+线上地址：<https://search.tecostudio.cn>（API 文档 [`/docs`](https://search.tecostudio.cn/docs) · Playground [`/playground`](https://search.tecostudio.cn/playground)）。
+
 ## 技术栈
 
 - **框架**：Astro 6（SSR / Node adapter）+ Vue 3 Islands
