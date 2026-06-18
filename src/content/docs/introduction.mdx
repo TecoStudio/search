@@ -4,8 +4,8 @@ description: MCSearch 统一 API 概览 —— 基础地址、通用响应头与
 order: 1
 ---
 
-MCSearch 对外提供统一的 HTTP / SSE API，覆盖服务器状态查询、状态 Banner、服务器图标等能力。
-所有接口无需鉴权，默认允许跨域调用。
+MCSearch 对外提供统一的 HTTP / SSE API，覆盖服务器状态查询、状态 Banner、服务器图标、
+Mod 聚合搜索与 Wiki 代理等能力。所有接口无需鉴权，默认允许跨域调用（支持 `OPTIONS` 预检）。
 
 ## 基础地址
 
@@ -26,6 +26,18 @@ https://<your-host>/api/v1/server/status?host=mc.hypixel.net
 | `X-Response-Time`              | 服务端处理耗时（毫秒）              |
 | `Access-Control-Allow-Origin`  | `*`，允许任意来源跨域               |
 
+## 限流
+
+除 `/api/v1/health` 外的 `/api/v1/*` 接口按客户端 IP 限流（默认每分钟 60 次，可由
+`RATE_LIMIT_RPM` 配置；未配置 Redis 时不限流）。每个响应附带以下响应头，超限时返回
+`429` 并带 `Retry-After`：
+
+| 响应头                  | 说明                       |
+| ----------------------- | -------------------------- |
+| `X-RateLimit-Limit`     | 当前窗口的请求上限         |
+| `X-RateLimit-Remaining` | 当前窗口剩余可用次数       |
+| `X-RateLimit-Reset`     | 窗口重置的 Unix 时间戳（秒） |
+
 ## 公共参数
 
 服务器类接口共用以下查询参数：
@@ -41,5 +53,10 @@ https://<your-host>/api/v1/server/status?host=mc.hypixel.net
 - [服务器状态查询](/docs/server-status) — SSE 实时状态
 - [状态 Banner](/docs/server-banner) — PNG 状态横幅
 - [服务器图标](/docs/server-icon) — PNG favicon
+- [Mod 聚合搜索](/docs/mod-search) — 多来源聚合搜索
+- [Mod 搜索来源列表](/docs/mod-sources) — 可用来源发现
+- [Wiki 全文搜索](/docs/wiki-search) — zh.minecraft.wiki 全文搜索
+- [Wiki 词条摘要](/docs/wiki-page) — 词条摘要 + 缩略图
+- [Wiki 搜索建议](/docs/wiki-suggest) — 标题自动补全
 
 > 想直接试一试？打开 [Playground](/playground) 在浏览器里调用任意接口。

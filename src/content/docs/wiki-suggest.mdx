@@ -1,0 +1,30 @@
+---
+title: Wiki 搜索建议
+description: 代理 zh.minecraft.wiki OpenSearch 自动补全，返回标题建议。
+order: 9
+endpoint: wiki-suggest
+---
+
+`GET /api/v1/wiki/suggest`
+
+代理 [zh.minecraft.wiki](https://zh.minecraft.wiki) 的 OpenSearch 标题自动补全，
+最多返回 5 条建议。适合做搜索框实时联想。缓存 300s。
+
+## 参数
+
+| 参数 | 必填 | 说明       |
+| ---- | ---- | ---------- |
+| `q`  | 是   | 搜索关键词 |
+
+## 返回字段
+
+```json
+{
+  "suggestions": [
+    { "title": "红石", "url": "https://zh.minecraft.wiki/w/红石" },
+    { "title": "红石电路", "url": "https://zh.minecraft.wiki/w/红石电路" }
+  ]
+}
+```
+
+失败时返回 `502`。

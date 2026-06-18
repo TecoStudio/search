@@ -1,0 +1,76 @@
+---
+title: Mod 聚合搜索
+description: 聚合 Modrinth / BBSMC / CurseForge 原生 API 与固定大站、BBSPK 论坛白名单，按来源归类返回。
+order: 5
+endpoint: mod-search
+---
+
+`GET /api/v1/mod/search`
+
+聚合多个后端的搜索结果：**Modrinth / BBSMC / CurseForge** 走各自原生搜索 API；
+**MC百科 / 哔哩哔哩 / Minecraft Wiki** 等固定大站与 **BBSPK 动态论坛白名单**走
+headless Chromium 抓取 Bing 的 `site:` 搜索。结果按来源归类，缓存 3600s。
+
+## 参数
+
+| 参数     | 必填 | 说明                                                                 |
+| -------- | ---- | -------------------------------------------------------------------- |
+| `q`      | 是   | 搜索关键词                                                           |
+| `source` | 否   | 来源过滤：`all`（默认）/ `modrinth` / `bbsmc` / `curseforge` / `mcmod` / `bilibili` / `<论坛 id>` |
+| `page`   | 否   | 页码，从 1 开始（默认 1）                                            |
+
+> 可用的 `source` id 可通过 [Mod 搜索来源列表](/docs/mod-sources) 接口动态获取。
+
+## 返回字段
+
+```json
+{
+  "query": "工业时代",
+  "source": "all",
+  "page": 1,
+  "sourcesCount": 30,
+  "results": [
+    {
+      "id": "a1b2c3d4e5f6a7b8",
+      "name": "工业时代 2 (IndustrialCraft 2)",
+      "description": "经典科技 mod……",
+      "source": "modrinth",
+      "sourceName": "Modrinth",
+      "url": "https://modrinth.com/mod/industrial-craft",
+      "thumbnail": "https://cdn.modrinth.com/.../icon.png",
+      "displayUrl": "modrinth.com › mod › industrial-craft",
+      "downloads": 1234567,
+      "author": "Player",
+      "categories": ["technology"],
+      "projectType": "mod"
+    }
+  ]
+}
+```
+
+`ModResult` 字段说明：
+
+| 字段          | 说明                                                       |
+| ------------- | ---------------------------------------------------------- |
+| `id`          | 由 URL 派生的稳定 id（SHA1 前 16 位）                      |
+| `name`        | 标题                                                       |
+| `description` | 摘要 / snippet                                             |
+| `source`      | 来源 id                                                    |
+| `sourceName`  | 来源显示名                                                 |
+| `url`         | 原始链接                                                   |
+| `displayUrl`  | 面包屑形式的展示 URL                                       |
+| `thumbnail`   | 图标 / 缩略图（可选）                                      |
+| `downloads`   | 下载量（仅原生 API 来源）                                  |
+| `author`      | 作者（仅原生 API 来源）                                    |
+| `categories`  | 分类（仅原生 API 来源）                                    |
+| `projectType` | 项目类型 `mod` / `modpack` / `resourcepack`（仅 Modrinth） |
+
+## 状态码
+
+| 状态  | 含义                                                       |
+| ----- | ---------------------------------------------------------- |
+| `400` | 参数缺失 / `source` 未知                                   |
+| `502` | 搜索失败（上游错误）                                       |
+| `503` | 单独查询 `curseforge` 但未配置 `CURSEFORGE_API_KEY`        |
+
+响应附加 `X-Sources-Count` 头，表示本次命中的来源数量。

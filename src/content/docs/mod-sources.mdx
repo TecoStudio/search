@@ -1,0 +1,46 @@
+---
+title: Mod 搜索来源列表
+description: 列出全部可用搜索来源（固定大站 + BBSPK 动态论坛白名单），用于发现 source id。
+order: 6
+endpoint: mod-sources
+---
+
+`GET /api/v1/mod/sources`
+
+返回 [Mod 聚合搜索](/docs/mod-search) 可用的全部来源：固定大站（MC百科 / B站 / Modrinth /
+CurseForge / BBSMC / Minecraft Wiki 等）加上 BBSPK 维护的动态论坛白名单。客户端可据此
+填充 `source` 选项，而无需硬编码论坛 id。缓存 300s。
+
+该接口无查询参数。
+
+## 返回字段
+
+```json
+{
+  "count": 30,
+  "sources": [
+    {
+      "id": "modrinth",
+      "name": "Modrinth",
+      "domain": "modrinth.com",
+      "provider": "modrinth",
+      "fixed": true
+    },
+    {
+      "id": "minebbs",
+      "name": "MineBBS",
+      "domain": "minebbs.com",
+      "provider": "bing",
+      "fixed": false
+    }
+  ]
+}
+```
+
+| 字段       | 说明                                                              |
+| ---------- | ----------------------------------------------------------------- |
+| `id`       | 来源 id，用作 mod 搜索的 `source` 参数                            |
+| `name`     | 显示名                                                            |
+| `domain`   | 域名                                                              |
+| `provider` | 搜索后端：`bing` / `modrinth` / `bbsmc` / `curseforge`           |
+| `fixed`    | 是否为固定大站（`false` 为 BBSPK 动态论坛）                       |

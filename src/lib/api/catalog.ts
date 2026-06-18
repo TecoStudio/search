@@ -110,6 +110,16 @@ export const API_ENDPOINTS: ApiEndpoint[] = [
     ],
   },
   {
+    id: 'mod-sources',
+    method: 'GET',
+    path: '/api/v1/mod/sources',
+    title: 'Mod 搜索来源列表',
+    summary:
+      '列出全部可用搜索来源（固定大站 + BBSPK 动态论坛白名单），供发现 mod 搜索的 source id。缓存 300s。',
+    responseType: 'json',
+    params: [],
+  },
+  {
     id: 'wiki-search',
     method: 'GET',
     path: '/api/v1/wiki/search',

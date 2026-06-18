@@ -22,6 +22,18 @@ export function apiHeaders(opts: ApiHeaderOptions): Headers {
   return headers;
 }
 
+/**
+ * Standard error response. Keeps the `{ error: <string> }` body shape used
+ * across the API while centralising construction so future changes land once.
+ */
+export function errorResponse(
+  message: string,
+  status: number,
+  opts: ApiHeaderOptions,
+): Response {
+  return jsonResponse({ error: message }, status, opts);
+}
+
 /** Headers for SSE responses — adds streaming + anti-buffering headers. */
 export function sseHeaders(opts: ApiHeaderOptions): Headers {
   const headers = apiHeaders({ ...opts, contentType: undefined });

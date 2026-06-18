@@ -1,0 +1,37 @@
+---
+title: Wiki 词条摘要
+description: 代理 zh.minecraft.wiki 词条摘要，返回标题、纯文本摘要、缩略图与链接。
+order: 8
+endpoint: wiki-page
+---
+
+`GET /api/v1/wiki/page`
+
+代理 [zh.minecraft.wiki](https://zh.minecraft.wiki) 的词条摘要，自动跟随重定向。
+词条不存在时返回 `null`（负结果同样会缓存，避免反复打上游）。缓存 1800s。
+
+## 参数
+
+| 参数    | 必填 | 说明                     |
+| ------- | ---- | ------------------------ |
+| `title` | 是   | 词条标题（自动跟随重定向） |
+
+## 返回字段
+
+```json
+{
+  "title": "红石",
+  "extract": "红石是一种矿物……",
+  "thumbnail": "https://zh.minecraft.wiki/images/...png",
+  "url": "https://zh.minecraft.wiki/w/红石"
+}
+```
+
+| 字段        | 说明                          |
+| ----------- | ----------------------------- |
+| `title`     | 实际词条标题（重定向后）      |
+| `extract`   | 纯文本摘要（≤300 字）         |
+| `thumbnail` | 缩略图 URL（可能为 `null`）   |
+| `url`       | 词条跳转链接                  |
+
+词条不存在时整个响应为 `null`。失败时返回 `502`。

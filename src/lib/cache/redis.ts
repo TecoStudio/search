@@ -70,6 +70,27 @@ export async function cacheSet(
   }
 }
 
+/**
+ * Atomically increment a counter and return its new value. On the first hit
+ * (value becomes 1) an EXPIRE of `ttlSeconds` is set, giving a fixed-window
+ * counter. Returns `null` when Redis is unavailable so callers can degrade
+ * (e.g. rate limiting falls open).
+ */
+export async function cacheIncr(
+  key: string,
+  ttlSeconds: number,
+): Promise<number | null> {
+  const c = getClient();
+  if (!c) return null;
+  try {
+    const n = await c.incr(key);
+    if (n === 1) await c.expire(key, ttlSeconds);
+    return n;
+  } catch {
+    return null;
+  }
+}
+
 export async function cacheGetBuffer(key: string): Promise<Buffer | null> {
   const c = getClient();
   if (!c) return null;

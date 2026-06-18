@@ -5,17 +5,29 @@
  * (mcsearch:mod:sources). Intended for internal/manual use; the list also
  * refreshes on a 6h interval on its own (see lib/mod/sources).
  *
+ * When INTERNAL_TOKEN is set, requires `Authorization: Bearer <token>`; when
+ * unset the endpoint stays open (no breaking change for existing callers).
+ *
  * Returns { ok, forums, fixed, total }.
  */
 import type { APIRoute } from 'astro';
 
 import { refreshSources, FIXED_SOURCES } from '../../../lib/mod/sources';
-import { jsonResponse } from '../../../lib/http/headers';
+import { jsonResponse, errorResponse } from '../../../lib/http/headers';
 
 export const prerender = false;
 
-export const GET: APIRoute = async () => {
+export const GET: APIRoute = async ({ request }) => {
   const start = Date.now();
+
+  const token = process.env.INTERNAL_TOKEN;
+  if (token) {
+    const auth = request.headers.get('authorization');
+    if (auth !== `Bearer ${token}`) {
+      return errorResponse('Unauthorized', 401, { start });
+    }
+  }
+
   try {
     const forums = await refreshSources();
     return jsonResponse(

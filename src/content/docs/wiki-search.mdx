@@ -1,0 +1,35 @@
+---
+title: Wiki 全文搜索
+description: 代理 zh.minecraft.wiki 全文搜索，返回标题与高亮 snippet。
+order: 7
+endpoint: wiki-search
+---
+
+`GET /api/v1/wiki/search`
+
+代理 [zh.minecraft.wiki](https://zh.minecraft.wiki) 的全文搜索，最多返回 5 条结果。
+snippet 经过清洗为纯文本，命中关键词以 `<mark>` 包裹便于高亮。缓存 600s。
+
+## 参数
+
+| 参数 | 必填 | 说明       |
+| ---- | ---- | ---------- |
+| `q`  | 是   | 搜索关键词 |
+
+## 返回字段
+
+```json
+{
+  "query": "红石",
+  "results": [
+    {
+      "title": "红石电路",
+      "titleSnippet": "<mark>红石</mark>电路",
+      "snippet": "……<mark>红石</mark>是一种……",
+      "url": "https://zh.minecraft.wiki/w/红石电路"
+    }
+  ]
+}
+```
+
+失败时返回 `502`。
