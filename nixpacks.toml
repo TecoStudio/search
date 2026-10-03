@@ -1,0 +1,23 @@
+# Nixpacks build (Dokploy "Nixpacks" build type). The Dockerfile is the
+# equivalent for the "Dockerfile" build type.
+
+[phases.setup]
+# '...' keeps the auto-detected Node + Bun; chromium backs the Bing scraper
+# (src/lib/mod/browser.ts).
+nixPkgs = ['...', 'chromium']
+
+[phases.install]
+# postinstall (scripts/fetch-fonts.mjs) fetches the banner fonts.
+cmds = ['bun install --frozen-lockfile']
+
+[phases.build]
+cmds = ['bun run build']
+
+[start]
+# The Nix chromium lives in the store, not /usr/bin; resolve it from PATH.
+cmd = '''sh -c 'CHROMIUM_PATH="${CHROMIUM_PATH:-$(command -v chromium)}" exec node ./dist/server/entry.mjs' '''
+
+[variables]
+NODE_ENV = 'production'
+HOST = '0.0.0.0'
+PORT = '4321'
