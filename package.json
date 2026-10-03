@@ -9,6 +9,7 @@
     "dev": "astro dev",
     "build": "astro build",
     "preview": "astro preview",
+    "start": "node ./dist/server/entry.mjs",
     "astro": "astro",
     "fonts": "node scripts/fetch-fonts.mjs",
     "postinstall": "node scripts/fetch-fonts.mjs",

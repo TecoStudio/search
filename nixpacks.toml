@@ -15,7 +15,7 @@ cmds = ['bun run build']
 
 [start]
 # The Nix chromium lives in the store, not /usr/bin; resolve it from PATH.
-cmd = '''sh -c 'CHROMIUM_PATH="${CHROMIUM_PATH:-$(command -v chromium)}" exec node ./dist/server/entry.mjs' '''
+cmd = '''sh -c 'CHROMIUM_PATH="${CHROMIUM_PATH:-$(command -v chromium)}" exec npm start' '''
 
 [variables]
 NODE_ENV = 'production'
