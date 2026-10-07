@@ -1,0 +1,18 @@
+# Nixpacks deployment for the Astro SSR server.
+
+[phases.setup]
+nixPkgs = ['...', 'chromium']
+
+[phases.install]
+cmds = ['bun install --frozen-lockfile']
+
+[phases.build]
+cmds = ['bun run build']
+
+[start]
+cmd = '''sh -c 'CHROMIUM_PATH="${CHROMIUM_PATH:-$(command -v chromium)}" exec npm start' '''
+
+[variables]
+NODE_ENV = 'production'
+HOST = '0.0.0.0'
+PORT = '4321'
