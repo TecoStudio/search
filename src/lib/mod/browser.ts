@@ -77,17 +77,20 @@ function release(): void {
  */
 export async function withPage<T>(fn: (page: Page) => Promise<T>): Promise<T> {
   await acquire();
-  const browser = await getBrowser();
-  const context = await browser.newContext({ locale: 'zh-CN', userAgent: USER_AGENT });
   try {
-    await context.route('**/*', (route) => {
-      if (BLOCKED_RESOURCES.has(route.request().resourceType())) route.abort();
-      else route.continue();
-    });
-    const page = await context.newPage();
-    return await fn(page);
+    const browser = await getBrowser();
+    const context = await browser.newContext({ locale: 'zh-CN', userAgent: USER_AGENT });
+    try {
+      await context.route('**/*', (route) => {
+        if (BLOCKED_RESOURCES.has(route.request().resourceType())) route.abort();
+        else route.continue();
+      });
+      const page = await context.newPage();
+      return await fn(page);
+    } finally {
+      await context.close().catch(() => {});
+    }
   } finally {
-    await context.close().catch(() => {});
     release();
   }
 }
