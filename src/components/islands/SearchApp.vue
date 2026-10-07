@@ -20,6 +20,7 @@ import {
 } from 'lucide-vue-next';
 import WikiSuggest from '../wiki/WikiSuggest.vue';
 import WikiPanel from '../wiki/WikiPanel.vue';
+import { readJsonResponse } from '../../lib/http/response';
 
 interface WikiResult {
   title: string;
@@ -72,8 +73,9 @@ async function runWiki(q: string, signal: AbortSignal) {
     const res = await fetch(`/api/v1/wiki/search?q=${encodeURIComponent(q)}`, {
       signal,
     });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data?.error ?? '搜索失败');
+    const data = await readJsonResponse<{ error?: string; results?: WikiResult[] }>(res);
+    if (!res.ok) throw new Error(data?.error ?? `搜索失败（HTTP ${res.status}）`);
+    if (!data) throw new Error('搜索服务返回了空响应');
     results.value = data.results ?? [];
   } catch (err) {
     if (signal.aborted) return;
@@ -92,8 +94,9 @@ async function runMod(q: string, signal: AbortSignal) {
       `/api/v1/mod/search?q=${encodeURIComponent(q)}&source=all`,
       { signal },
     );
-    const data = await res.json();
-    if (!res.ok) throw new Error(data?.error ?? '搜索失败');
+    const data = await readJsonResponse<{ error?: string; results?: ModResult[] }>(res);
+    if (!res.ok) throw new Error(data?.error ?? `搜索失败（HTTP ${res.status}）`);
+    if (!data) throw new Error('搜索服务返回了空响应');
     modResults.value = data.results ?? [];
   } catch (err) {
     if (signal.aborted) return;
